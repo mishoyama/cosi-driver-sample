@@ -1,22 +1,18 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: nginx
+  name: s3client
 spec:
   containers:
-  - name: web
-    image: k8s.gcr.io/nginx-slim:0.8
+  - name: s3client
+    image: dxd360/s3cli:latest
     imagePullPolicy: Always
-    ports:
-    - name: web
-      containerPort: 80
-      protocol: TCP
     volumeMounts:
     - name: cosi-secrets
       mountPath: /data/cosi
     env:
-      - name: PORT
-        value: "3001"
+      - name: CREDENTIALS_FILE_PATH
+        value: "/data/cosi/credentials"
   volumes:
   - name: cosi-secrets
     csi:
