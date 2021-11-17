@@ -5,7 +5,7 @@ metadata:
 spec:
   containers:
   - name: s3client
-    image: dxd360/s3cli:latest
+    image: dxd360/s3cli:0.0.1
     imagePullPolicy: Always
     volumeMounts:
     - name: cosi-secrets
