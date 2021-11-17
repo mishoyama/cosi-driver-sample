@@ -15,21 +15,33 @@ package pkg
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"net/url"
 	"sigs.k8s.io/cosi-driver-sample/pkg/objectscale"
 )
 
 func NewDriver(
 	ctx context.Context,
-	provisioner, objectStoreEndpoint, objectStoreAccessKey, objectStoreSecretKey string,
+	provisioner, s3Endpoint, objectscaleGateway, objectStoreAccessKey, objectStoreSecretKey string,
 ) (*IdentityServer, *ProvisionerServer, error) {
+	objectscaleGatewayUrl, e := url.Parse(objectscaleGateway)
+	if e != nil {
+		return nil, nil, errors.New("Failed to parse Objectscale gateway url: " + e.Error())
+	}
+
+	s3EndpointUrl, e := url.Parse(s3Endpoint)
+	if e != nil {
+		return nil, nil, errors.New("Failed to parse S3 endpoint url: " + e.Error())
+	}
+
 	obClient := objectscale.NewObjectScaleClient(
-		objectscale.ServiceEndpoint{Host: "", Port: 32585},
-		objectscale.ServiceEndpoint{Host: "", Port: 31651},
+		objectscaleGatewayUrl, //objectscale.ServiceEndpoint{Host: "", Port: 32585},
+		s3EndpointUrl,         //objectscale.ServiceEndpoint{Host: "", Port: 31651},
 		objectStoreAccessKey,
 		objectStoreSecretKey,
 	)
@@ -39,7 +51,7 @@ func NewDriver(
 
 	fmt.Printf("Connecting to Object store...\n")
 	sess, err := session.NewSession(&aws.Config{
-		Endpoint:         &objectStoreEndpoint,
+		Endpoint:         &s3Endpoint,
 		S3ForcePathStyle: aws.Bool(true),
 		Credentials:      creds,
 		Region:           &region,
@@ -54,7 +66,7 @@ func NewDriver(
 		if err != nil {
 			fmt.Println(err.Error())
 		} else {
-			fmt.Printf("Successfully connected to Object store %s\n", objectStoreEndpoint)
+			fmt.Printf("Successfully connected to Object store %s\n", s3Endpoint)
 		}
 	}
 
@@ -62,7 +74,7 @@ func NewDriver(
 			provisioner: provisioner,
 		}, &ProvisionerServer{
 			provisioner:       provisioner,
-			endpoint:          objectStoreEndpoint,
+			endpoint:          s3Endpoint,
 			accessKeyId:       objectStoreAccessKey,
 			secretKeyId:       objectStoreSecretKey,
 			objectScaleClient: obClient,
