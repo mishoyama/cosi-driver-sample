@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/gofrs/uuid"
 )
 
 type ProvisionerServer struct {
@@ -105,15 +106,36 @@ func (s *ProvisionerServer) ProvisionerDeleteBucket(
 func (s *ProvisionerServer) ProvisionerGrantBucketAccess(ctx context.Context,
 	req *cosi.ProvisionerGrantBucketAccessRequest) (*cosi.ProvisionerGrantBucketAccessResponse, error) {
 
-	// todo implement
-	// s.objectScaleClient.Iam.CreateUser()
+	nameUuid, _ := uuid.NewV4()
+	username := "cosi-" + nameUuid.String()
 
-	// todo workaround return basic creds
+	_, err := s.objectScaleClient.Iam.CreateUser(username)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	// TODO give access to particular bucket (not entire S3). Need to create policy for bucket only and attach it.
+	err = s.objectScaleClient.Iam.AttachUserPolicy(username)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	cred, err := s.objectScaleClient.Iam.CreateAccessKey(username)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	accessKey := ""
+	secretKey := ""
+	if cred != nil {
+		accessKey = *cred.AccessKeyId
+		secretKey = *cred.SecretAccessKey
+	}
+
 	return &cosi.ProvisionerGrantBucketAccessResponse{
 		AccountId: "test_acc",
 		Credentials: "{\"endpoint\":\"" + s.endpoint +
-			"\", \"accessKeyId\":\"" + s.accessKeyId +
-			"\", \"secretKeyId\": \"" + s.secretKeyId +
+			"\", \"accessKeyId\":\"" + accessKey +
+			"\", \"secretKeyId\": \"" + secretKey +
 			"\", \"bucket\": \"" + req.GetBucketId() +
 			"\"}",
 	}, nil

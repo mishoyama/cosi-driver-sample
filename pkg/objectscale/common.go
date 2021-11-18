@@ -27,7 +27,7 @@ type ServiceEndpoint struct {
 }
 
 type ObjectScaleClient struct {
-	objectScaleGtwEndpoint ServiceEndpoint
+	objectScaleGtwEndpoint ServiceEndpoint // TODO bug in IAM, this has to be internal gateway on 4443 port (does matter!)
 	s3Endpoint             ServiceEndpoint
 
 	credentials *credentials.Credentials
